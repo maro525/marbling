@@ -118,18 +118,19 @@ class findFaceGetPulse(object):
     def run(self, cam):
         self.times.append(time.time() - self.t0)
         self.frame_out = self.frame_in
-        self.gray = cv2.equalizeHist(cv2.cvtColor(self.frame_in, cv2.COLOR_BGR2GRAY))
+        self.gray = cv2.equalizeHist(
+            cv2.cvtColor(self.frame_in, cv2.COLOR_BGR2GRAY))
         col = (100, 255, 100)
         if self.find_faces:
-            cv2.putText(
-                self.frame_out, "Press 'C' to change camera (current: %s)" % str(
-                    cam),
-                (10, 25), cv2.FONT_HERSHEY_PLAIN, 1.25, col)
+            # cv2.putText(
+            #     self.frame_out, "Press 'C' to change camera (current: %s)" % str(
+            #         cam),
+            #     (10, 25), cv2.FONT_HERSHEY_PLAIN, 1.25, col)
             cv2.putText(
                 self.frame_out, "Press 'S' to lock face and begin",
                        (10, 50), cv2.FONT_HERSHEY_PLAIN, 1.25, col)
-            cv2.putText(self.frame_out, "Press 'Esc' to quit",
-                       (10, 75), cv2.FONT_HERSHEY_PLAIN, 1.25, col)
+            # cv2.putText(self.frame_out, "Press 'Esc' to quit",
+            #            (10, 75), cv2.FONT_HERSHEY_PLAIN, 1.25, col)
             self.data_buffer, self.times, self.trained = [], [], False
             detected = list(self.face_cascade.detectMultiScale(self.gray,
                                                                scaleFactor=1.3,
@@ -147,25 +148,23 @@ class findFaceGetPulse(object):
             self.draw_rect(self.face_rect, col=(255, 0, 0))
             x, y, w, h = self.face_rect
             cv2.putText(self.frame_out, "Face",
-                       (x, y), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
+                        (x, y), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
             self.draw_rect(forehead1)
             x, y, w, h = forehead1
             cv2.putText(self.frame_out, "Forehead",
-                       (x, y), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
+                        (x, y), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
             return
         if set(self.face_rect) == set([1, 1, 2, 2]):
             return
-        cv2.putText(
-            self.frame_out, "Press 'C' to change camera (current: %s)" % str(
-                cam),
-            (10, 25), cv2.FONT_HERSHEY_PLAIN, 1.25, col)
+        # cv2.putText(
+        #     self.frame_out, "Press 'C' to change camera (current: %s)" % str(
+        #         cam),
+        #     (10, 25), cv2.FONT_HERSHEY_PLAIN, 1.25, col)
         cv2.putText(
             self.frame_out, "Press 'S' to restart",
                    (10, 50), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
-        cv2.putText(self.frame_out, "Press 'D' to toggle data plot",
-                   (10, 75), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
-        cv2.putText(self.frame_out, "Press 'Esc' to quit",
-                   (10, 100), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
+        # cv2.putText(self.frame_out, "Press 'D' to toggle data plot",
+        #             (10, 75), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
 
         forehead1 = self.get_subface_coord(0.5, 0.18, 0.25, 0.15)
         self.draw_rect(forehead1)
@@ -199,11 +198,11 @@ class findFaceGetPulse(object):
 
             if idx[0].shape[0] is 0:
                 text = 'No Data'
-                tsize=1
+                tsize = 1
                 col = (100, 255, 100)
                 x, y, w, h = self.get_subface_coord(0.5, 0.18, 0.25, 0.15)
                 cv2.putText(self.frame_out, text,
-                           (int(x - w / 2), int(y)), cv2.FONT_HERSHEY_PLAIN, tsize, col)
+                            (int(x - w / 2), int(y)), cv2.FONT_HERSHEY_PLAIN, tsize, col)
             else:
                 pruned = self.fft[idx]
                 phase = phase[idx]
@@ -231,15 +230,17 @@ class findFaceGetPulse(object):
                                                               g,
                                                               b])
                 x1, y1, w1, h1 = self.face_rect
-                self.slices = [np.copy(self.frame_out[y1:y1 + h1, x1:x1 + w1, 1])]
+                self.slices = [
+                    np.copy(self.frame_out[y1:y1 + h1, x1:x1 + w1, 1])]
                 col = (100, 255, 100)
                 gap = (self.buffer_size - L) / self.fps
                 # self.bpms.append(bpm)
                 # self.ttimes.append(time.time())
                 if gap:
-                    text = "(estimate: %0.1f bpm, wait %0.0f s)" % (self.bpm, gap)
+                    text = "(estimate: %0.1f bpm, wait %0.0f s)" % (
+                        self.bpm, gap)
                 else:
                     text = "(estimate: %0.1f bpm)" % (self.bpm)
                 tsize = 1
                 cv2.putText(self.frame_out, text,
-                           (int(x - w / 2), int(y)), cv2.FONT_HERSHEY_PLAIN, tsize, col)
+                            (int(x - w / 2), int(y)), cv2.FONT_HERSHEY_PLAIN, tsize, col)
