@@ -25,7 +25,7 @@ class getPulseApp(threading.Thread):
     # def __init__(self, args):
     def __init__(self):
         super(getPulseApp, self).__init__()
-        self.stop_event = threadin.Event()
+        self.stop_event = threading.Event()
 
         self.selected_cam = 0
 
@@ -122,7 +122,7 @@ class getPulseApp(threading.Thread):
         cv2.destroyAllWindows()
 
     def run(self):
-        while not(self.stop_event):
+        while not self.stop_event.is_set():
             self.main_loop()
         self.close()
 
@@ -132,7 +132,7 @@ class getPulseApp(threading.Thread):
     def main_loop(self):
         """
         Single iteration of the application's main loop.
-        """)
+        """
         # Get current image frame from the camera
         _, frame=self.camera.read()
         self.h=self.camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
@@ -156,3 +156,15 @@ class getPulseApp(threading.Thread):
             self.make_bpm_plot()
 
         self.key_handler()
+
+if __name__ == '__main__':
+    pulseApp = getPulseApp()
+    pulseApp.start()
+
+    while True:
+        try:
+            pulseApp.join(1)
+        except KeyboardInterrupt:
+            print 'Ctrl-C received'
+            pulseApp.stop()
+            break

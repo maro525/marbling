@@ -73,8 +73,8 @@ class Dobot(threading.Thread):
 
     def _send_message(self, msg):
         time.sleep(0.1)
-        if self.verbose:
-            print('pydobot: >>', msg)
+        # if self.verbose:
+        #     print('pydobot: >>', msg)
         self.ser.write(msg.bytes())
 
     def _read_message(self):
@@ -82,8 +82,8 @@ class Dobot(threading.Thread):
         b = self.ser.read_all()
         if len(b) > 0:
             msg = Message(b)
-            if self.verbose:
-                print('pydobot: <<', msg)
+            # if self.verbose:
+                # print('pydobot: <<', msg)
             return msg
         return
 
@@ -171,6 +171,7 @@ class Dobot(threading.Thread):
 
     def go(self, x, y, z, r=0.):
         self._set_ptp_cmd(x, y, z, r, mode=MODE_PTP_MOVJ_XYZ)
+        print 'go to {} {} {}'.format(x, y, z)
 
     def suck(self, suck):
         self._set_end_effector_suction_cup(suck)
