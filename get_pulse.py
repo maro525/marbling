@@ -11,6 +11,13 @@ import socket
 import sys
 import threading
 
+from pythonosc import osc_message_builder
+from pythonosc import udp_client
+
+OSC_IP = "127.0.0.1"
+OSC_PORT = 5005
+OSC_ADDRESS = "/bpm"
+
 
 class getPulseApp(threading.Thread):
 
@@ -41,8 +48,11 @@ class getPulseApp(threading.Thread):
         self.bpm_plot = False
         self.plot_title = "Data display - raw signal (top) and PSD (bottom)"
 
+        self.client = udp_client.UDPClient(OSC_IP, OSC_PORT)
         self.key_controls = {"s": self.toggle_search,
                              "c": self.toggle_cam}
+
+        self.loop_count = 0
 
     @property
     def bpm(self):
@@ -134,19 +144,19 @@ class getPulseApp(threading.Thread):
         Single iteration of the application's main loop.
         """
         # Get current image frame from the camera
-        _, frame=self.camera.read()
-        self.h=self.camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        self.w=self.camera.get(cv2.CAP_PROP_FRAME_WIDTH)
+        _, frame = self.camera.read()
+        self.h = self.camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        self.w = self.camera.get(cv2.CAP_PROP_FRAME_WIDTH)
 
         # display unaltered frame
         # imshow("Original",frame)
 
         # set current image frame to the processor's input
-        self.processor.frame_in=frame
+        self.processor.frame_in = frame
         # process the image frame to perform all needed analysis
         self.processor.run(self.selected_cam)
         # collect the output frame for display
-        output_frame=self.processor.frame_out
+        output_frame = self.processor.frame_out
 
         # show the processed/annotated output frame
         imshow("Processed", output_frame)
@@ -156,6 +166,18 @@ class getPulseApp(threading.Thread):
             self.make_bpm_plot()
 
         self.key_handler()
+
+        self.loop_count += 1
+        if self.loop_count is 30:
+            self.send_bpm()
+            self.loop_count = 0
+
+    def send_bpm(self):
+        msg = osc_message_builder.OscMessageBuilder(address=OSC_ADDRESS)
+        msg.add_arg(self.processor.bpm)
+        msg = msg.build()
+        self.client.send(msg)
+
 
 if __name__ == '__main__':
     pulseApp = getPulseApp()

@@ -7,6 +7,13 @@ from dobot import Dobot
 
 import threading
 
+from pythonosc import dispatcher
+from pythonosc import osc_server
+
+OSC_IP = "127.0.0.1"
+OSC_PORT = 5005
+OSC_ADDRESS = "/bpm"
+
 
 class RobotOperator(threading.Thread):
 
@@ -19,6 +26,8 @@ class RobotOperator(threading.Thread):
         self.interval = 0
         self.stop_event = threading.Event()
         self.key_controls = {"m": self.toggle_marbling}
+        self.marble_count = 0
+        self.marble_point = {"x": 100.0, "y": 0.0, "z": -20.0}
 
     def connect(self):
         available_ports = glob('/dev/ttyUSB*')
@@ -29,7 +38,8 @@ class RobotOperator(threading.Thread):
         self.rob = Dobot(port=available_ports[0], verbose=True)
         time.sleep(1.0)
 
-    def set_interval(self, interval):
+    def set_interval(self, _interval):
+        interval = float(interval)
         if type(interval) is int:
             if interval > 0.0:
                 self.interval = interval
@@ -40,15 +50,21 @@ class RobotOperator(threading.Thread):
 
     def marble(self):
         print 'marble'
-        x = 100.0
-        y = 0.0
-        z = -20.0
         self.rob.speed(100)
-        self.rob.go(x, y, z)
+        self.rob.go(
+            self.marble_point["x"], self.marble_point["y"], self.marble_point["z"])
         time.sleep(2.0)
-        self.rob.speed(100)
         z = 0.0
-        self.rob.go(x, y, z)
+        self.rob.go(marble_point["x"], marble_point["y"], z)
+        self.marble_count += 1
+
+    def refill(self):
+        print 'refill'
+        self.rob.go(self.marble_point["x"], self.marble_point["y"], 0.0, 90.0)
+        self.rob.go(self.marble_point["x"],
+                    self.marble_point["y"], -20.0, 90.0)
+        self.rob.go(self.marble_point["x"], self.marble_point["y"], 0.0, 90.0)
+        self.rob.go(self.marble_point["x"], self.marble_point["y"], 0.0)
 
     def run(self):
         while not self.stop_event.is_set():
@@ -57,6 +73,9 @@ class RobotOperator(threading.Thread):
                 self.marble()
                 # time.sleep(self.interval)
                 time.sleep(5.0)
+                if self.mable_count is 10:
+                    self.refill()
+                    self.marble_count = 0
             else:
                 print 'sleep'
                 time.sleep(1.0)
@@ -84,6 +103,12 @@ class RobotOperator(threading.Thread):
 if __name__ == '__main__':
     robotoperation = RobotOperator()
     robotoperation.start()
+    dispatcher = dispatcher.Dispatcher()
+    dispatcher.map(OSC_ADDRESS, robotoperation.set_interval)
+    server = osc_server.ThreadingOSCUDPServer(
+        (OSC_IP, OSC_PORT), dispatcher)
+    print("Serving on {}".format(server.server_address))
+    server.serve_forever()
 
     while True:
         try:
