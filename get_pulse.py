@@ -50,8 +50,7 @@ class getPulseApp(threading.Thread):
         self.plot_title = "Data display - raw signal (top) and PSD (bottom)"
 
         self.udp_socket = socket(AF_INET, SOCK_DGRAM)
-        self.key_controls = {"s": self.toggle_search,
-                             "c": self.toggle_cam}
+        self.key_controls = {"c": self.toggle_cam}
 
         self.loop_count = 0
 
@@ -65,45 +64,7 @@ class getPulseApp(threading.Thread):
         self.bpm_plot = False
         destroyWindow(self.plot_title)
         # self.selected_cam += 1
-        # self.selected_cam = self.selected_cam % len(self.cameras)
-
-    def write_csv(self):
-        """
-        Writes current data to a csv file
-        """
-        fn = "Webcam-pulse" + str(datetime.datetime.now())
-        fn = fn.replace(":", "_").replace(".", "_")
-        data = np.vstack((self.processor.times, self.processor.samples)).T
-        np.savetxt(fn + ".csv", data, delimiter=',')
-        print("Writing csv")
-
-    def toggle_search(self):
-        """
-        Toggles a motion lock on the processor's face detection component.
-
-        Locking the forehead location in place significantly improves
-        data quality, once a forehead has been sucessfully isolated.
-        """
-        # state = self.processor.find_faces.toggle()
-        state = self.processor.find_faces_toggle()
-        self.processor.bpm = 0
-        print("face detection lock =", not state)
-
-    def toggle_display_plot(self):
-        """
-        Toggles the data display.
-        """
-        if self.bpm_plot:
-            print("bpm plot disabled")
-            self.bpm_plot = False
-            destroyWindow(self.plot_title)
-        else:
-            print("bpm plot enabled")
-            if self.processor.find_faces:
-                self.toggle_search()
-            self.bpm_plot = True
-            self.make_bpm_plot()
-            moveWindow(self.plot_title, self.w, 0)
+        # self.selected_cam = self.selected_cam % len(self.cameras)elimiter=',')
 
     def make_bpm_plot(self):
         """
@@ -176,7 +137,7 @@ class getPulseApp(threading.Thread):
             self.loop_count = 0
 
     def send_bpm(self):
-        bpm = self.processor.bpm
+        bpm = self.processor.send_data
         print bpm
         if bpm is None or bpm is 0:
             bpm = 0

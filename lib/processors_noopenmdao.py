@@ -51,6 +51,9 @@ class findFaceGetPulse(object):
         self.idx = 1
         self.find_faces = True
         self.bDetecting = False
+        self.bMeasuring = False
+        self.move_thresh = 50
+        self.send_data = 0
 
     def find_faces_toggle(self):
         self.find_faces = not self.find_faces
@@ -125,18 +128,6 @@ class findFaceGetPulse(object):
             cv2.cvtColor(self.frame_in, cv2.COLOR_BGR2GRAY))
         col = (100, 255, 100)
 
-        if self.bDetecting:
-            txt = "detecting..."
-        else:
-            txt = "face searching..."
-            # cv2.putText(
-            #     self.frame_out, "Press 'C' to change camera (current: %s)" % str(
-            #         cam),
-            #     (10, 25), cv2.FONT_HERSHEY_PLAIN, 1.25, col)
-
-        cv2.putText(self.frame_out, txt, (10, 50),
-                    cv2.FONT_HERSHEY_PLAIN, 1.25, col)
-        self.data_buffer, self.times, self.trained = [], [], False
         detected = list(self.face_cascade.detectMultiScale(
             self.gray, scaleFactor=1.3, minNeighbors=4, minSize=(50, 50), flags=cv2.CASCADE_SCALE_IMAGE))
 
@@ -155,89 +146,111 @@ class findFaceGetPulse(object):
             self.draw_rect(forehead1)
             x, y, w, h = forehead1
             cv2.putText(self.frame_out, "Forehead",
-                        (x, y), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
+                            (x, y), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
+
+            # calculate move distance
+            movelen = 30
+            if movelen < self.move_thresh:
+                self.bMeasuring = True
+            else:
+                self.bMeasuring = False
+                self.send_data = 0
         elif len(detected) is 0:
+            self.bDetecting = False
+            self.send_data = 0
+            self.data_buffer, self.times, self.trained = [], [], False
+            self.bMeasuring = False
             self.bDetecting = False
 
         if set(self.face_rect) == set([1, 1, 2, 2]):
-            cv2.putText(self.frame_out, "Press 'S' to restart",
-                   (10, 80), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
+            return
 
-        # forehead1 = self.get_subface_coord(0.5, 0.18, 0.25, 0.15)
-        # self.draw_rect(forehead1)
+        if self.bDetecting:
+            txt = "detecting..."
+        else:
+            txt = "face searching..."
+        if self.bMeasuring:
+            txt += "measuring"
+        else:
+            txt += "Do not Move"
+        cv2.putText(self.frame_out, txt, (10, 50),
+                    cv2.FONT_HERSHEY_PLAIN, 1.25, col)
 
-        # vals = self.get_subface_means(forehead1)
+        if not (self.bDetecting and self.bMeasuring):
+            return
 
-        # self.data_buffer.append(vals)
-        # L = len(self.data_buffer)
-        # if L > self.buffer_size:
-        #     self.data_buffer = self.data_buffer[-self.buffer_size:]
-        #     self.times = self.times[-self.buffer_size:]
-        #     L = self.buffer_size
+        vals = self.get_subface_means(forehead1)
+        self.data_buffer.append(vals)
+        L = len(self.data_buffer)
+        if self.bMeasuring:
+            if L > self.buffer_size:
+                self.data_buffer = self.data_buffer[-self.buffer_size:]
+                self.times = self.times[-self.buffer_size:]
+                L = self.buffer_size
 
-        # processed = np.array(self.data_buffer)
-        # self.samples = processed
-        # if L > 10:
-        #     self.output_dim = processed.shape[0]
+            processed = np.array(self.data_buffer)
+            self.samples = processed
+            if L > 10:
+                self.output_dim = processed.shape[0]
 
-        #     self.fps = float(L) / (self.times[-1] - self.times[0])
-        #     even_times = np.linspace(self.times[0], self.times[-1], L)
-        #     interpolated = np.interp(even_times, self.times, processed)
-        #     interpolated = np.hamming(L) * interpolated
-        #     interpolated = interpolated - np.mean(interpolated)
-        #     raw = np.fft.rfft(interpolated)
-        #     phase = np.angle(raw)
-        #     self.fft = np.abs(raw)
-        #     self.freqs = float(self.fps) / L * np.arange(L / 2 + 1)
+                self.fps = float(L) / (self.times[-1] - self.times[0])
+                even_times = np.linspace(self.times[0], self.times[-1], L)
+                interpolated = np.interp(even_times, self.times, processed)
+                interpolated = np.hamming(L) * interpolated
+                interpolated = interpolated - np.mean(interpolated)
+                raw = np.fft.rfft(interpolated)
+                phase = np.angle(raw)
+                self.fft = np.abs(raw)
+                self.freqs = float(self.fps) / L * np.arange(L / 2 + 1)
 
-        #     freqs = 60. * self.freqs
-        #     idx = np.where((freqs > 50) & (freqs < 180))
+                freqs = 60. * self.freqs
+                idx = np.where((freqs > 50) & (freqs < 180))
 
-        #     if idx[0].shape[0] is 0:
-        #         text = 'No Data'
-        #         tsize = 1
-        #         col = (100, 255, 100)
-        #         x, y, w, h = self.get_subface_coord(0.5, 0.18, 0.25, 0.15)
-        #         cv2.putText(self.frame_out, text,
-        #                     (int(x - w / 2), int(y)), cv2.FONT_HERSHEY_PLAIN, tsize, col)
-        #     else:
-        #         pruned = self.fft[idx]
-        #         phase = phase[idx]
+                if idx[0].shape[0] is 0:
+                    text = 'No Data'
+                    tsize = 1
+                    col = (100, 255, 100)
+                    x, y, w, h = self.get_subface_coord(0.5, 0.18, 0.25, 0.15)
+                    cv2.putText(self.frame_out, text,
+                                (int(x - w / 2), int(y)), cv2.FONT_HERSHEY_PLAIN, tsize, col)
+                else:
+                    pruned = self.fft[idx]
+                    phase = phase[idx]
 
-        #         pfreq = freqs[idx]
-        #         self.freqs = pfreq
-        #         self.fft = pruned
-        #         idx2 = np.argmax(pruned)
+                    pfreq = freqs[idx]
+                    self.freqs = pfreq
+                    self.fft = pruned
+                    idx2 = np.argmax(pruned)
 
-        #         t = (np.sin(phase[idx2]) + 1.) / 2.
-        #         t = 0.9 * t + 0.1
-        #         alpha = t
-        #         beta = 1 - t
+                    t = (np.sin(phase[idx2]) + 1.) / 2.
+                    t = 0.9 * t + 0.1
+                    alpha = t
+                    beta = 1 - t
 
-        #         self.bpm = self.freqs[idx2]
-        #         self.idx += 1
+                    self.bpm = self.freqs[idx2]
+                    self.send_data = self.bpm
+                    self.idx += 1
 
-        #         x, y, w, h = self.get_subface_coord(0.5, 0.18, 0.25, 0.15)
-        #         r = alpha * self.frame_in[y:y + h, x:x + w, 0]
-        #         g = alpha * \
-        #             self.frame_in[y:y + h, x:x + w, 1] + \
-        #             beta * self.gray[y:y + h, x:x + w]
-        #         b = alpha * self.frame_in[y:y + h, x:x + w, 2]
-        #         self.frame_out[y:y + h, x:x + w] = cv2.merge([r,
-        #                                                       g,
-        #                                                       b])
-        #         x1, y1, w1, h1 = self.face_rect
-        #         self.slices = [
-        #             np.copy(self.frame_out[y1:y1 + h1, x1:x1 + w1, 1])]
-        #         col = (100, 255, 100)
-        #         gap = (self.buffer_size - L) / self.fps
-        #         # self.bpms.append(bpm)
-        #         # self.ttimes.append(time.time())
-        #         if gap:
-        #             text = "(estimate: %0.1f bpm, wait %0.0f s)" % (
-        #                 self.bpm, gap)
-        #         else:
-        #             text = "(estimate: %0.1f bpm)" % (self.bpm)
-        #         tsize = 1
-        #         cv2.putText(self.frame_out, text,
-        #                     (int(x - w / 2), int(y)), cv2.FONT_HERSHEY_PLAIN, tsize, col)
+                    x, y, w, h = self.get_subface_coord(0.5, 0.18, 0.25, 0.15)
+                    r = alpha * self.frame_in[y:y + h, x:x + w, 0]
+                    g = alpha * \
+                        self.frame_in[y:y + h, x:x + w, 1] + \
+                        beta * self.gray[y:y + h, x:x + w]
+                    b = alpha * self.frame_in[y:y + h, x:x + w, 2]
+                    self.frame_out[y:y + h, x:x + w] = cv2.merge([r,g,b])
+                    x1, y1, w1, h1 = self.face_rect
+                    self.slices = [
+                        np.copy(self.frame_out[y1:y1 + h1, x1:x1 + w1, 1])]
+                    col = (100, 255, 100)
+                    gap = (self.buffer_size - L) / self.fps
+                    # self.bpms.append(bpm)
+                    # self.ttimes.append(time.time())
+                    if gap:
+                        text = "(estimate: %0.1f bpm, wait %0.0f s)" % (
+                            self.bpm, gap)
+                        self.send_data = -1.0
+                    else:
+                        text = "(estimate: %0.1f bpm)" % (self.bpm)
+                    tsize = 1
+                    cv2.putText(self.frame_out, text,
+                                (int(x - w / 2), int(y+20)), cv2.FONT_HERSHEY_PLAIN, tsize, col)
