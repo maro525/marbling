@@ -159,17 +159,9 @@ class findFaceGetPulse(object):
         elif len(detected) is 0:
             self.bDetecting = False
 
-        # if set(self.face_rect) == set([1, 1, 2, 2]):
-        #     return
-        # # cv2.putText(
-        # #     self.frame_out, "Press 'C' to change camera (current: %s)" % str(
-        # #         cam),
-        # #     (10, 25), cv2.FONT_HERSHEY_PLAIN, 1.25, col)
-        # cv2.putText(
-        #     self.frame_out, "Press 'S' to restart",
-        #            (10, 50), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
-        # # cv2.putText(self.frame_out, "Press 'D' to toggle data plot",
-        # #             (10, 75), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
+        if set(self.face_rect) == set([1, 1, 2, 2]):
+            cv2.putText(self.frame_out, "Press 'S' to restart",
+                   (10, 80), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
 
         # forehead1 = self.get_subface_coord(0.5, 0.18, 0.25, 0.15)
         # self.draw_rect(forehead1)
