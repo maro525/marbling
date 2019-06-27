@@ -11,12 +11,13 @@ import socket
 import sys
 import threading
 
-from pythonosc import osc_message_builder
-from pythonosc import udp_client
+# from pythonosc import osc_message_builder
+# from pythonosc import udp_client
 
-OSC_IP = "127.0.0.1"
-OSC_PORT = 5005
-OSC_ADDRESS = "/bpm"
+from socket import socket, AF_INET, SOCK_DGRAM
+
+IP = "127.0.0.1"
+PORT = 5000
 
 
 class getPulseApp(threading.Thread):
@@ -48,7 +49,7 @@ class getPulseApp(threading.Thread):
         self.bpm_plot = False
         self.plot_title = "Data display - raw signal (top) and PSD (bottom)"
 
-        self.client = udp_client.UDPClient(OSC_IP, OSC_PORT)
+        self.udp_socket = socket(AF_INET, SOCK_DGRAM)
         self.key_controls = {"s": self.toggle_search,
                              "c": self.toggle_cam}
 
@@ -85,6 +86,7 @@ class getPulseApp(threading.Thread):
         """
         # state = self.processor.find_faces.toggle()
         state = self.processor.find_faces_toggle()
+        self.processor.bpm = 0
         print("face detection lock =", not state)
 
     def toggle_display_plot(self):
@@ -130,6 +132,7 @@ class getPulseApp(threading.Thread):
     def close(self):
         self.camera.release()
         cv2.destroyAllWindows()
+        self.udp_socket.close()
 
     def run(self):
         while not self.stop_event.is_set():
@@ -173,10 +176,12 @@ class getPulseApp(threading.Thread):
             self.loop_count = 0
 
     def send_bpm(self):
-        msg = osc_message_builder.OscMessageBuilder(address=OSC_ADDRESS)
-        msg.add_arg(self.processor.bpm)
-        msg = msg.build()
-        self.client.send(msg)
+        bpm = self.processor.bpm
+        print bpm
+        if bpm is None or bpm is 0:
+            bpm = 0
+        msg = str(bpm)
+        self.udp_socket.sendto(msg.encode(), (IP, PORT))
 
 
 if __name__ == '__main__':

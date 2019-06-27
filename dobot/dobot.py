@@ -171,7 +171,7 @@ class Dobot(threading.Thread):
 
     def go(self, x, y, z, r=0.):
         self._set_ptp_cmd(x, y, z, r, mode=MODE_PTP_MOVJ_XYZ)
-        print 'go to {} {} {}'.format(x, y, z)
+        print 'go to {} {} {} {}'.format(x, y, z, r)
 
     def suck(self, suck):
         self._set_end_effector_suction_cup(suck)

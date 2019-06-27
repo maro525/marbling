@@ -53,6 +53,8 @@ class findFaceGetPulse(object):
 
     def find_faces_toggle(self):
         self.find_faces = not self.find_faces
+        print "find faces : "
+        print self.find_faces
         return self.find_faces
 
     def get_faces(self):
@@ -140,10 +142,14 @@ class findFaceGetPulse(object):
                                                                flags=cv2.CASCADE_SCALE_IMAGE))
 
             if len(detected) > 0:
+                # self.find_faces_toggle()
                 detected.sort(key=lambda a: a[-1] * a[-2])
 
                 if self.shift(detected[-1]) > 10:
                     self.face_rect = detected[-1]
+            else:
+                # self.find_faces_toggle()
+                pass
             forehead1 = self.get_subface_coord(0.5, 0.18, 0.25, 0.15)
             self.draw_rect(self.face_rect, col=(255, 0, 0))
             x, y, w, h = self.face_rect
