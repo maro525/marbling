@@ -128,13 +128,13 @@ class RobotOperator(threading.Thread):
         # up
         self.go_home(self.r1)
         # rotate
-        self.rotate()
+        # self.rotate()
         # down
-        self.go_marble_point(self.r2)
+        # self.go_marble_point(self.r2)
         # up
-        self.go_home(self.r2)
+        # self.go_home(self.r2)
         # rotate
-        self.rotate()
+        # self.rotate()
         self.marble_count += 1
 
     def refill(self):
