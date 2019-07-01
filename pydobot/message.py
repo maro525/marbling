@@ -27,11 +27,11 @@ class Message:
     def refresh(self):
         if self.checksum is None:
             self.checksum = self.id + self.ctrl
-            # print self.checksum
             for i in range(len(self.params)):
-                if type(self.params[i]) is not int:
-                    continue
-                self.checksum += self.params[i]
+                if isinstance(self.params[i], int):
+                    self.checksum += self.params[i]
+                else:
+                    self.checksum += int(self.params[i].encode('hex'), 16)
             self.checksum = self.checksum % 256
             self.checksum = 2 ** 8 - self.checksum
             self.checksum = self.checksum % 256
