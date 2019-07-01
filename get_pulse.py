@@ -37,7 +37,7 @@ class getPulseApp(threading.Thread):
 
         self.selected_cam = 0
 
-        self.camera = cv2.VideoCapture(1)
+        self.camera = cv2.VideoCapture(self.selected_cam)
         self.w, self.h = 0, 0
         self.pressed = 0
 

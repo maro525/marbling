@@ -27,8 +27,8 @@ class RobotOperator(threading.Thread):
         self.r_normal = True
         self.operation_interval = 0.5
         self.min_interval = 0.8
-        self.normal_marble_interval = 1.0
-        self.marbling_interval = self.normal_marble_interval
+        self.normal_interval = 2.0
+        self.marbling_interval = self.normal_interval
         self.normal_pulse = 72
         self.move_z = 50.0
         self.connect()
@@ -71,7 +71,8 @@ class RobotOperator(threading.Thread):
     def set_marbling_interval(self):
         if self.pulse == -1:
             self.bMarbling = True
-            self.marbling_interval = self.normal_marble_interval
+            self.marbling_interval = self.normal_interval
+            self.operation_interval = self.normal_interval
         elif self.pulse == 0:
             if not self.bStopping:
                 self.bStopping = True
@@ -82,9 +83,10 @@ class RobotOperator(threading.Thread):
                 self.stop_count = 0
                 self.bStopping = False
         else:
-            self.marbling_interval = 2.0 - self.normal_marble_interval * self.pulse / self.normal_pulse
-            if self.marbling_interval < self.min_interval:
-                self.marbling_interval = self.min_interval
+            # self.marbling_interval = 2.0 - self.normal_marble_interval * self.pulse / self.normal_pulse
+            self.operation_interval = self.pulse / 60
+            # if self.marbling_interval < self.min_interval:
+            #     self.marbling_interval = self.min_interval
 
     def go_home(self, r):
         self.x = self.marble_point["x"]
@@ -102,7 +104,7 @@ class RobotOperator(threading.Thread):
         self.y = self.marble_point["y"]
         self.z = self.marble_point["z"]
         self.rob.go(self.x, self.y, self.z, r)
-        time.sleep(self.marbling_interval)
+        # time.sleep(self.marbling_interval)
         if r is self.r1:
             self.r_normal = True
         else:
