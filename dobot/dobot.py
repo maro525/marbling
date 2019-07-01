@@ -31,7 +31,7 @@ class Dobot(threading.Thread):
 
     # joint_angles = [4]
 
-    def __init__(self, port, verbose=False):
+    def __init__(self, port, verbose=True):
         threading.Thread.__init__(self)
         self.verbose = verbose
         self.ser = serial.Serial(port,
@@ -73,8 +73,8 @@ class Dobot(threading.Thread):
 
     def _send_message(self, msg):
         time.sleep(0.1)
-        # if self.verbose:
-        #     print('pydobot: >>', msg)
+        if self.verbose:
+            print('pydobot: >>', msg.id)
         self.ser.write(msg.bytes())
 
     def _read_message(self):
@@ -82,8 +82,8 @@ class Dobot(threading.Thread):
         b = self.ser.read_all()
         if len(b) > 0:
             msg = Message(b)
-            # if self.verbose:
-                # print('pydobot: <<', msg)
+            if self.verbose:
+                print('pydobot: <<', msg.params)
             return msg
         return
 
@@ -91,8 +91,6 @@ class Dobot(threading.Thread):
         msg = Message()
         msg.id = 10
         response = self._send_command(msg)
-        if response is None:
-            return
         self.x = struct.unpack_from('f', response.params, 0)[0]
         self.y = struct.unpack_from('f', response.params, 4)[0]
         self.z = struct.unpack_from('f', response.params, 8)[0]
@@ -111,7 +109,7 @@ class Dobot(threading.Thread):
         msg.id = 10
         msg.params = bytearray(bytes([0x01]))
         print 'msg'
-        print msg
+        # print(msg)
         return self._send_command(msg)
 
     def _set_cp_cmd(self, x, y, z):
@@ -167,6 +165,21 @@ class Dobot(threading.Thread):
             msg.params.extend(bytearray([0x01]))
         else:
             msg.params.extend(bytearray([0x00]))
+        return self._send_command(msg)
+
+    def _set_ptp_joint_params(self, v_x, v_y, v_z, v_r, a_x, a_y, a_z, a_r):
+        msg = Message()
+        msg.id = 80
+        msg.ctrl = 0x03
+        msg.params = bytearray([])
+        msg.params.extend(bytearray(struct.pack('f', v_x)))
+        msg.params.extend(bytearray(struct.pack('f', v_y)))
+        msg.params.extend(bytearray(struct.pack('f', v_z)))
+        msg.params.extend(bytearray(struct.pack('f', v_r)))
+        msg.params.extend(bytearray(struct.pack('f', a_x)))
+        msg.params.extend(bytearray(struct.pack('f', a_y)))
+        msg.params.extend(bytearray(struct.pack('f', a_z)))
+        msg.params.extend(bytearray(struct.pack('f', a_r)))
         return self._send_command(msg)
 
     def go(self, x, y, z, r=0.):
