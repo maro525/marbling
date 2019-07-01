@@ -1,3 +1,4 @@
+from socket import socket, AF_INET, SOCK_DGRAM
 import time
 from glob import glob
 from lib.interface import waitKey
@@ -15,6 +16,7 @@ OSC_PORT = 5005
 OSC_ADDRESS = "/bpm"
 
 
+# ロボット制御のクラス。スレッドで動いている
 class RobotOperator(threading.Thread):
 
     def __init__(self):
@@ -22,30 +24,23 @@ class RobotOperator(threading.Thread):
         self.speed = 800
         self.acceleration = 800
         self.rob = None
-        self.r1 = 0.0
-        self.r2 = 186.0
-        self.r_normal = True
-        self.operation_interval = 0.5
-        self.min_interval = 0.8
-        self.normal_marble_interval = 1.0
-        self.marbling_interval = self.normal_marble_interval
-        self.normal_pulse = 72
-        self.move_z = 50.0
-        self.connect()
-        self.bMarbling = False
-        self.interval = 0
-        self.stop_event = threading.Event()
-        self.key_controls = {"m": self.toggle_marbling}
-        self.marble_count = 0
-        self.marble_point = {"x": 200.0, "y": 220.0, "z": -62.0}
-        self.rob.speed(self.speed, self.acceleration)
-        time.sleep(1.0)
-        self.pulse = 0
-        self.go_home(self.r1)
-        self.bStopping = False
-        self.stop_count = 0
-        self.wait_count = 2
+        self.r1 = 0.0  # 墨の角度
+        self.r2 = 186.0  # 油の角度
+        self.r_normal = True  # サーボの角度がどの状態かのflag. Trueのとき、r_norml = r1
+        self.operation_interval = 0.5  # 動作の基本的なインターバル
+        self.normal_marble_interval = 1.0  # marblingインターバルの初期値
+        self.marbling_interval = self.normal_marble_interval  # marblingのインターバルの値を入れる変数
+        self.move_z = 50.0  # z軸を上下する章
+        self.bMarbling = False  # marblingするかしないかのflag
+        self.stop_event = threading.Event()  # このスレッドを止めるためのイベント
+        self.marble_count = 0  # marblingの回数をカウントする変数
+        self.marble_point = {"x": 200.0, "y": 220.0, "z": -62.0}  # marblingの場所
+        self.pulse = 0  # pulseを入れる変数
+        self.bStopping = False  # marblingが終わろうとするときこのフラグがTrueになる。止まったらまたFalseに戻る
+        self.stop_count = 0  # stop_countがたまったらmarblingが止まる
+        self.wait_count = 2  # 止まるまでのカウント数
 
+    # ロボット接続
     def connect(self):
         available_ports = glob('/dev/ttyUSB*')
         print available_ports
@@ -53,38 +48,40 @@ class RobotOperator(threading.Thread):
             print 'no port found for Dobot Magician'
             exit(1)
         self.rob = Dobot(port=available_ports[0], verbose=True)
+        self.rob.speed(self.speed, self.acceleration)
         time.sleep(1.0)
-        self.x = 200.0
-        self.y = 200.0
-        self.z = 200.0
-
-    def set_interval(self, interval):
-        interval = float(interval)
-        if type(interval) is int:
-            if interval > 0.0:
-                self.interval = interval
-                print 'interval = {}'.format(iself.interval)
+        self.go_home(self.r1)
 
     def toggle_marbling(self):
         self.bMarbling = not self.bMarbling
 
+    # マーブリングの間隔を決める
+    # UDPで送られてくる値によってカエル
+    # -1 : マーブリングが始まる。。。
+    # 0 : マーブリングが終わる
+    # それ以外 ： 送られてくる値に従って制御
     def set_marbling_interval(self):
         if self.pulse == -1:
             self.bMarbling = True
             self.marbling_interval = self.normal_marble_interval
         elif self.pulse == 0:
+            # marblingをやっていなかったらreturn
+            if self.bMarbling is False:
+                return
+            # マーブリングやってたら、bStoppingをTrueにする
             if not self.bStopping:
                 self.bStopping = True
-            self.stop_count += 1
-            print 'wait..'
+                print 'Stopping...'
+            self.stop_count += 1  # stopまでカウント
+            print 'Stopping...{}'.format(self.stop_count)
+            # wait_count超えたら終了
             if self.stop_count > self.wait_count:
                 self.bMarbling = False
                 self.stop_count = 0
                 self.bStopping = False
         else:
-            self.marbling_interval = 2.0 - self.normal_marble_interval * self.pulse / self.normal_pulse
-            if self.marbling_interval < self.min_interval:
-                self.marbling_interval = self.min_interval
+            self.marbling_interval = 60 / self.pulse
+            print 'marble interval {}'.format(self.marbling_interval)
 
     def go_home(self, r):
         self.x = self.marble_point["x"]
@@ -125,15 +122,15 @@ class RobotOperator(threading.Thread):
         self.go_home(self.r1)
         # down
         self.go_marble_point(self.r1)
-        # up
-        self.go_home(self.r1)
-        # rotate
+        # # up
+        # self.go_home(self.r1)
+        # # rotate
         # self.rotate()
-        # down
+        # # down
         # self.go_marble_point(self.r2)
-        # up
+        # # up
         # self.go_home(self.r2)
-        # rotate
+        # # rotate
         # self.rotate()
         self.marble_count += 1
 
@@ -155,7 +152,6 @@ class RobotOperator(threading.Thread):
             self.set_marbling_interval()
             if self.bMarbling:
                 self.marble()
-                # time.sleep(self.interval)
                 time.sleep(1.0)
                 if self.marble_count is 5:
                     self.refill()
@@ -184,12 +180,7 @@ class RobotOperator(threading.Thread):
                 self.key_controls[key]()
 
 # robotoperation = None
-#
-# def get_digit(unused_addr, *i):
-#     global robotoperation
-#     robotoperation.set_interval(i)
 
-from socket import socket, AF_INET, SOCK_DGRAM
 
 HOST = '127.0.0.1'
 PORT = 5000
@@ -200,7 +191,8 @@ s.bind((HOST, PORT))
 if __name__ == '__main__':
     global robotoperation
     robotoperation = RobotOperator()
-    robotoperation.start()
+    robotoperation.connect()
+    robotoperation.run()
     # dispatcher = dispatcher.Dispatcher()
     # dispatcher.map(OSC_ADDRESS, get_digit)
     # server = osc_server.ThreadingOSCUDPServer(

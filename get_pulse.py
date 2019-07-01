@@ -18,6 +18,7 @@ from socket import socket, AF_INET, SOCK_DGRAM
 
 IP = "127.0.0.1"
 PORT = 5000
+VIDEO_NUM = 0
 
 
 class getPulseApp(threading.Thread):
@@ -37,7 +38,7 @@ class getPulseApp(threading.Thread):
 
         self.selected_cam = 0
 
-        self.camera = cv2.VideoCapture(1)
+        self.camera = cv2.VideoCapture(VIDEO_NUM)
         self.w, self.h = 0, 0
         self.pressed = 0
 
