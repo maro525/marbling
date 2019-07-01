@@ -18,6 +18,7 @@ OSC_IP = "127.0.0.1"
 OSC_PORT = 5005
 OSC_ADDRESS = "/bpm"
 
+
 class RobotOperator(threading.Thread):
 
     def __init__(self):
@@ -29,12 +30,13 @@ class RobotOperator(threading.Thread):
         self.r2 = 186.0
         self.r_normal = True
         self.operation_interval = 2.0
-        self.normal_marble_interval = 2.0  # ma
-        self.marbling_interval = self.normal_marble_interval  # mar
+        self.normal_marble_interval = 2.0
+        self.marbling_interval = self.normal_marble_interval
         self.move_z = 10.0
         self.bMarbling = True
         self.stop_event = threading.Event()
         self.marble_count = 0
+        self.marble_index = 0
         self.marble_z = -30.2
         self.marble_point = [
             {"x": 183.0, "y": -71.1},
@@ -59,6 +61,11 @@ class RobotOperator(threading.Thread):
     def toggle_marbling(self):
         self.bMarbling = not self.bMarbling
 
+    def turn_marble_index(self):
+        self.marble_index += 1
+        if self.marble_index is 5:
+            self.marble_index = 0
+
     def set_marbling_interval(self):
         if self.pulse == -1:
             self.bMarbling = True
@@ -74,6 +81,7 @@ class RobotOperator(threading.Thread):
             # wait_count
             if self.stop_count > self.wait_count:
                 self.bMarbling = False
+                self.turn_marble_index()
                 self.stop_count = 0
                 self.bStopping = False
         else:
@@ -82,9 +90,9 @@ class RobotOperator(threading.Thread):
             print 'marble interval {}'.format(self.marbling_interval)
 
     def go_home(self, r):
-        self.x = self.marble_point["x"]
-        self.y = self.marble_point["y"]
-        self.z = self.marble_point["z"] + self.move_z
+        self.x = self.marble_point[marble_index]["x"]
+        self.y = self.marble_point[marble_index]["y"]
+        self.z = self.marble_z + self.move_z
         self.rob.move_to(self.x, self.y, self.z, r)
         time.sleep(self.operation_interval)
         if r is self.r1:
@@ -93,9 +101,9 @@ class RobotOperator(threading.Thread):
             self.r_normal = False
 
     def go_marble_point(self, r):
-        self.x = self.marble_point["x"]
-        self.y = self.marble_point["y"]
-        self.z = self.marble_point["z"]
+        self.x = self.marble_point[marble_index]["x"]
+        self.y = self.marble_point[marble_index]["y"]
+        self.z = self.marble_z
         self.rob.move_to(self.x, self.y, self.z, r)
         time.sleep(self.marbling_interval)
         if r is self.r1:
