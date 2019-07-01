@@ -121,7 +121,7 @@ class findFaceGetPulse(object):
         pylab.savefig("data_fft.png")
         quit()
 
-    def run(self, cam):
+    def run(self):
         self.times.append(time.time() - self.t0)
         self.frame_out = self.frame_in
         self.gray = cv2.equalizeHist(
