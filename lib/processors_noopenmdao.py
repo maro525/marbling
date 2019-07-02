@@ -204,7 +204,7 @@ class findFaceGetPulse(object):
                 self.freqs = float(self.fps) / L * np.arange(L / 2 + 1)
 
                 freqs = 60. * self.freqs
-                idx = np.where((freqs > 50) & (freqs < 180))
+                idx = np.where((freqs > 50) & (freqs < 100))
 
                 if idx[0].shape[0] is 0:
                     text = 'No Data'
