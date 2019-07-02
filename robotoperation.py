@@ -98,6 +98,7 @@ class RobotOperator(threading.Thread):
             self.set_speed(True)
             self.bMarbling = True
             self.marbling_interval = self.normal_marble_interval
+            self.operation_interval = self.normal_marble_interval
         elif self.pulse == 0:  # face not detected
             if self.bMarbling is False:
                 return
@@ -126,6 +127,7 @@ class RobotOperator(threading.Thread):
             print 'marble interval {}'.format(self.marbling_interval)
 
     def go_top(self, r):
+        print "go top"
         self.x = self.marble_point[self.marble_index]["x"]
         self.y = self.marble_point[self.marble_index]["y"]
         self.z = self.marble_z + 100.0
@@ -137,6 +139,7 @@ class RobotOperator(threading.Thread):
             self.r_normal = False
 
     def go_init_pos(self, r):
+        print "go init pos"
         self.x = self.marble_point[self.marble_index]["x"]
         self.y = self.marble_point[self.marble_index]["y"]
         self.z = self.marble_z + 100.0
@@ -148,6 +151,7 @@ class RobotOperator(threading.Thread):
             self.r_normal = False
 
     def go_home(self, r):
+        print "go home"
         self.x = self.marble_point[self.marble_index]["x"]
         self.y = self.marble_point[self.marble_index]["y"]
         self.z = self.marble_z + self.move_z
@@ -159,6 +163,7 @@ class RobotOperator(threading.Thread):
             self.r_normal = False
 
     def go_marble_point(self, r):
+        print "go marble point"
         self.x = self.marble_point[self.marble_index]["x"]
         self.y = self.marble_point[self.marble_index]["y"]
         self.z = self.marble_z
@@ -170,6 +175,7 @@ class RobotOperator(threading.Thread):
             self.r_normal = False
 
     def going_marble_point(self, r):
+        print "going marble point"
         self.x = self.marble_point[self.marble_index]["x"]
         self.y = self.marble_point[self.marble_index]["y"]
         self.z = self.marble_z + 50
@@ -181,6 +187,7 @@ class RobotOperator(threading.Thread):
             self.r_normal = False
 
     def go_first_marble_point(self, r):
+        print "go first marble point"
         self.x = self.marble_point[self.marble_index]["x"]
         self.y = self.marble_point[self.marble_index]["y"]
         self.z = self.marble_z + self.move_z
@@ -203,7 +210,7 @@ class RobotOperator(threading.Thread):
         time.sleep(self.operation_interval)
 
     def marble(self):
-        print 'marble'
+        print 'marble loop'
         # set
         self.go_home(self.r1)
         # down
@@ -233,6 +240,7 @@ class RobotOperator(threading.Thread):
         # self.rob.go(self.marble_point["x"], self.marble_point["y"], 0.0)
 
     def gaze(self):
+        print "gaze"
         self.x = self.marble_point[2]["x"]
         self.y = self.marble_point[2]["y"]
         self.z = self.marble_z + 150.0
@@ -246,25 +254,26 @@ class RobotOperator(threading.Thread):
 
     def run(self):
         while not self.stop_event.is_set():
-            # self.key_handler()
+            self.key_handler()
             self.previous_bMarbling = self.bMarbling
             # print self.previous_bMarbling
-            print self.marbling_interval
             self.set_marbling_interval()
             if self.bMarbling:
+                print "marbling_interval {}".format(self.marbling_interval)
                 if not self.previous_bMarbling:
                     self.gaze()
                     self.marbling_count = 0
                 else:
+                    print "marbling start"
                     if self.marbling_count < 15:
-                        print self.marbling_count
+                        print "marbling_count {}".format(self.marbling_count)
                         self.marbling_interval = self.marbling_interval * \
                             self.pulse_sigmoid(self.marbling_count)
-                        self.marbling_count += 1
+                        # self.marbling_count += 1
                     self.marble()
-                    if self.marble_count is 5:
-                        self.refill()
-                        self.marble_count = 0
+                    # if self.marble_count is 5:
+                    #     self.refill()
+                    #     self.marble_count = 0
             else:
                 print 'sleep'
                 time.sleep(1.0)
@@ -273,7 +282,7 @@ class RobotOperator(threading.Thread):
 
     def get_pose(self):
         pose = self.rob.get_pose()
-        print pose
+        print "pose {}".format(pose)
 
     def disconnectRobot(self):
         self.rob.close()

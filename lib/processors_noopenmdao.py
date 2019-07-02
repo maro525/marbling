@@ -55,6 +55,11 @@ class findFaceGetPulse(object):
         self.move_thresh = 50
         self.send_data = 0
 
+        gamma = 0.5
+        self.gamma_cvt = np.zeros((256, 1), dtype='uint8')
+        for i in range(256):
+            self.gamma_cvt[i][0] = 255 * (float(i)/255) ** (1.0/gamma)
+
     def find_faces_toggle(self):
         self.find_faces = not self.find_faces
         print "find faces : "
@@ -121,12 +126,18 @@ class findFaceGetPulse(object):
         pylab.savefig("data_fft.png")
         quit()
 
+    def gamma(self, frame):
+        img_gamma = cv2.LUT(frame, self.gamma_cvt)
+        return img_gamma
+
     def run(self, cam):
         self.times.append(time.time() - self.t0)
         self.frame_out = self.frame_in
         self.gray = cv2.equalizeHist(
             cv2.cvtColor(self.frame_in, cv2.COLOR_BGR2GRAY))
+        self.gray = self.gamma(self.gray)
         col = (100, 255, 100)
+        # cv2.imshow("frame", self.gray)
 
         detected = list(self.face_cascade.detectMultiScale(
             self.gray, scaleFactor=1.3, minNeighbors=4, minSize=(50, 50), flags=cv2.CASCADE_SCALE_IMAGE))
