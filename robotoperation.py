@@ -35,8 +35,8 @@ class RobotOperator(threading.Thread):
         self.bMarbling = False
         self.previous_bMarbling = False
         self.stop_event = threading.Event()
-        self.marble_count = 0 # count of plate transition
-        self.marbling_count = 0 # count of marbling in one plate
+        self.marble_count = 0  # count of plate transition
+        self.marbling_count = 0  # count of marbling in one plate
         self.marble_index = 0
         self.marble_z = -30.2
         self.marble_point = [
@@ -52,12 +52,24 @@ class RobotOperator(threading.Thread):
         self.stop_count = 0  # stop_count
         self.wait_count = 10
 
+        self.key_controls = {
+            "r": self.restart,  # restart,
+            "p": self.pass_wait_count,  # pass
+        }
+
     def connect(self):
         port = list_ports.comports()[0].device
         self.rob = Dobot(port=port, verbose=True)
         self.set_speed(False)
         time.sleep(1.0)
         self.go_init_pos(self.r1)
+
+    def restart(self):
+        print "restart"
+
+    def pass_wait_count(self):
+        print "pass wait count"
+        self.stop_count = self.wait_count
 
     def set_speed(self, bFast):
         if bFast:
@@ -69,24 +81,24 @@ class RobotOperator(threading.Thread):
             self.acceleration = 300
             self.rob.speed(self.speed, self.acceleration)
 
-
     def toggle_marbling(self):
         self.bMarbling = not self.bMarbling
 
     def turn_marble_index(self):
         self.marble_index += 1
         if self.marble_index is 5:
-            self.rob.jump_to(self.marble_point[2]["x"], self.marble_point[2]["y"], self.marble_z+100, self.r1, wait=True)
+            self.rob.jump_to(
+                self.marble_point[2]["x"], self.marble_point[2]["y"], self.marble_z+100, self.r1, wait=True)
             self.marble_index = 0
         print 'add marble. index is {}'.format(self.marble_index)
 
     def set_marbling_interval(self):
-        if self.pulse == -1: #face detected
+        if self.pulse == -1:  # face detected
             self.stop_count = 0
             self.set_speed(True)
             self.bMarbling = True
             self.marbling_interval = self.normal_marble_interval
-        elif self.pulse == 0: #face not detected
+        elif self.pulse == 0:  # face not detected
             if self.bMarbling is False:
                 return
             if not self.bStopping:
@@ -104,8 +116,8 @@ class RobotOperator(threading.Thread):
                 self.stop_count = 0
                 self.bStopping = False
             self.marbling_interval = self.normal_marble_interval
-            
-        else: # getting pulse
+
+        else:  # getting pulse
             if self.bMarbling is False:
                 self.bMarbling = True
 
@@ -229,7 +241,7 @@ class RobotOperator(threading.Thread):
         self.set_speed(False)
         self.going_marble_point(self.r1)
 
-    def pulse_sigmoid(self,x=0):
+    def pulse_sigmoid(self, x=0):
         return 2 - 1/(1+np.exp(10-x))
 
     def run(self):
@@ -246,7 +258,8 @@ class RobotOperator(threading.Thread):
                 else:
                     if self.marbling_count < 15:
                         print self.marbling_count
-                        self.marbling_interval = self.marbling_interval * self.pulse_sigmoid(self.marbling_count)
+                        self.marbling_interval = self.marbling_interval * \
+                            self.pulse_sigmoid(self.marbling_count)
                         self.marbling_count += 1
                     self.marble()
                     if self.marble_count is 5:
@@ -255,7 +268,7 @@ class RobotOperator(threading.Thread):
             else:
                 print 'sleep'
                 time.sleep(1.0)
-        self.disconnectRobot()
+        self.stop_sequence()
         print "End Robot Operator"
 
     def get_pose(self):
@@ -267,16 +280,24 @@ class RobotOperator(threading.Thread):
 
     def stop(self):
         self.stop_event.set()
+        print("FORCE QUIT SIGNAL RECEIVED=======")
+
+    def stop_sequence(self):
+        self.go_init_pos(self.r1)
+        self.disconnectRobot()
 
     def key_handler(self):
         self.pressed = waitKey(10) & 255
+
+        if self.pressed == 27:  # esc
+            print("=============FORCE QUIT================")
+            self.stop()
 
         for key in self.key_controls.keys():
             if chr(self.pressed) == key:
                 self.key_controls[key]()
 
 # robotoperation = None
-
 
 
 HOST = '127.0.0.1'
@@ -304,8 +325,6 @@ if __name__ == '__main__':
             robotoperation.pulse = data
             robotoperation.join(1)
         except KeyboardInterrupt:
-            print 'Ctrl-C received'
-            robotoperation.go_init_pos(robotoperation.r1)
             robotoperation.stop()
             s.close()
             break
