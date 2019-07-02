@@ -5,6 +5,7 @@ import time
 from glob import glob
 from lib.interface import waitKey
 from serial.tools import list_ports
+import numpy as np
 
 from pydobot import Dobot
 # from get_pulse import getPulseApp
@@ -28,13 +29,14 @@ class RobotOperator(threading.Thread):
         self.r2 = 186.0
         self.r_normal = True
         self.operation_interval = 0.5
-        self.normal_marble_interval = 0.0
+        self.normal_marble_interval = 0.5
         self.marbling_interval = self.normal_marble_interval
         self.move_z = 10.0
         self.bMarbling = False
         self.previous_bMarbling = False
         self.stop_event = threading.Event()
-        self.marble_count = 0
+        self.marble_count = 0 # count of plate transition
+        self.marbling_count = 0 # count of marbling in one plate
         self.marble_index = 0
         self.marble_z = -30.2
         self.marble_point = [
@@ -101,6 +103,8 @@ class RobotOperator(threading.Thread):
                 self.go_top(self.r1)
                 self.stop_count = 0
                 self.bStopping = False
+            self.marbling_interval = self.normal_marble_interval
+            
         else: # getting pulse
             if self.bMarbling is False:
                 self.bMarbling = True
@@ -225,6 +229,8 @@ class RobotOperator(threading.Thread):
         self.set_speed(False)
         self.going_marble_point(self.r1)
 
+    def pulse_sigmoid(self,x=0):
+        return 2 - 1/(1+np.exp(10-x))
 
     def run(self):
         while not self.stop_event.is_set():
@@ -236,7 +242,12 @@ class RobotOperator(threading.Thread):
             if self.bMarbling:
                 if not self.previous_bMarbling:
                     self.gaze()
+                    self.marbling_count = 0
                 else:
+                    if self.marbling_count < 15:
+                        print self.marbling_count
+                        self.marbling_interval = self.marbling_interval * self.pulse_sigmoid(self.marbling_count)
+                        self.marbling_count += 1
                     self.marble()
                     if self.marble_count is 5:
                         self.refill()
@@ -265,6 +276,7 @@ class RobotOperator(threading.Thread):
                 self.key_controls[key]()
 
 # robotoperation = None
+
 
 
 HOST = '127.0.0.1'
