@@ -1,5 +1,5 @@
-from lib.processors_noopenmdao import findFaceGetPulse
-from lib.interface import plotXY, imshow, waitKey, destroyWindow
+from pulsedetector.processors_noopenmdao import findFaceGetPulse
+from pulsedetector.interface import plotXY, imshow, waitKey, destroyWindow
 from cv2 import moveWindow
 import cv2
 import argparse
