@@ -1,18 +1,19 @@
 from pydobot import Dobot
 import time
+from serial.tools import list_ports
 
 
 class RobotOperator:
     def __init__(self):
         self.rob = None
-        self.marble_z = -75.2
+        self.marble_z = -30.3
         self.move_z = 11.0
         self.marble_point = [
-            {"x": 196.4, "y": -83.9},
-            {"x": 229.2, "y": 113.3},
-            {"x": 61.3, "y": 194.4},
+            {"x": 167.3, "y": 155.2},
+            {"x": 253.3, "y": 50.9},
+            {"x": 48.2, "y": 228.4},
         ]
-        self.home = {"x": 150.0, "y": 150.0, "z": 200.0}
+        self.home = {"x": 113.5, "y": 58.9, "z": 13.1}
         self.op_interval = 0.5
 
     def connect(self):
@@ -20,7 +21,7 @@ class RobotOperator:
         self.rob = Dobot(port=port, verbose=True)
         self.set_speed(False)
         time.sleep(1.0)
-        self.go_init_pos(self.r1)
+        self.go_home(self.op_interval)
 
     def get_pose(self):
         pose = self.rob.get_pose()
@@ -34,47 +35,66 @@ class RobotOperator:
         else:
             self.speed = 300
             self.acceleration = 300
-            self.rob.speed(self.speed, self.acceleration
+            self.rob.speed(self.speed, self.acceleration)
 
-    def go_home(self, interval):
+    def go_interval(self, interval):
+        if interval is 0.0:
+            return
+        elif interval < 0.0:
+            return
+        elif interval > 1.5:
+            time.sleep(1.5)
+        else:
+            time.sleep(interval)
+
+    def go_home(self, interval=None):
         print "[RO]:go home"
         self.set_speed(False)
         self.x=self.home["x"]
         self.y=self.home["y"]
         self.z=self.home["z"]
         self.rob.jump_to(self.x, self.y, self.z, wait=True)
-        time.sleep(interval)
+        if interval is None:
+            time.sleep(self.op_interval)
+        else:
+            self.go_interval(interval)
 
-    def go_top(self, index, z_move, interval=self.op_interval, bWait=True):
-        print "[RO]:go top"
+    def go_top(self, index, z_move, interval=None, bWait=False):
+        # print "[RO]:go top. {} {}".format(z_move, interval)
         self.x=self.marble_point[index]["x"]
         self.y=self.marble_point[index]["y"]
         self.z=self.marble_z + z_move
-        self.rob.jump_to(self.x, self.y, self.z, wait=bWait)
-        time.sleep(interval)
+        self.rob.move_to(self.x, self.y, self.z, wait=bWait)
+        if interval is None:
+            time.sleep(self.op_interval)
+        else:
+            self.go_interval(interval)
 
-    def go_marble_point(self, index, interval):
-        print "go marble point"
+    def go_marble_point(self, index, interval=None):
+        # print "[RO]go marble point"
         self.x=self.marble_point[index]["x"]
         self.y=self.marble_point[index]["y"]
         self.z=self.marble_z
         self.rob.move_to(self.x, self.y, self.z)
-        time.sleep(interval)
+        if interval is None:
+            return
+        else:
+            self.go_interval(interval)
 
     def gaze(self, index, interval):
-        print "gaze"
+        print "[RO]gaze {} {}".format(index, interval)
         self.x=self.marble_point[0]["x"]
         self.y=self.marble_point[0]["y"]
         self.z=self.marble_z + 150.0
-        self.rob.jump_to(self.x, self.y, self.z, wait=True)
-        time.sleep(1.0)
         self.set_speed(False)
-        self.rob.go_top(index, interval, 50.0)
+        self.rob.jump_to(self.x, self.y, self.z)
+        self.go_interval(interval)
+        self.go_top(index, 0.0, interval=interval)
 
     def marble(self, index, interval):
-        print '[RO]:marble loop'
+        # print '[RO]:marble loop'
         # set
-        self.go_top(self.index, self.move_z,
+        self.go_top(index, self.move_z,
                     interval=interval, bWait=False)
         # down
         self.go_marble_point(index, interval)

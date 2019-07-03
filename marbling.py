@@ -2,15 +2,17 @@
 
 import threading
 
-from marbling_operator import MarblingOperator
-from communication import Communication
+from marbling.marbling_operator import MarblingOperator
 
 mab = None
 kb = None
-com = None
 
 HOST = '127.0.0.1'
 PORT = 5000
+
+from socket import socket, AF_INET, SOCK_DGRAM
+s = socket(AF_INET, SOCK_DGRAM)
+s.bind((HOST, PORT))
 
 
 class KB(threading.Thread):
@@ -45,28 +47,20 @@ def start_kb():
     kb.start()
 
 
-def start_communication():
-    global com
-    com = Communication(HOST, PORT)
-
-
-def main():
-    global mab, kb, com
+if __name__ == '__main__':
     start_marblingoperation()
     start_kb()
-    start_communication()
     while True:
         try:
-            mab.set_pulse(com.recv())
+            msg, address = s.recvfrom(8192)
+            data = int(float(msg))
+            print ("->{}".format(data))
+            mab.pulse = data
             mab.join(1)
             kb.join(1)
         except KeyboardInterrupt:
             mab.stop()
             kb.stop()
-            com.close()
+            s.close()
             break
-
-
-if __name__ == '__main__':
-    main()
     print("====PROGRAM FINISHED======")

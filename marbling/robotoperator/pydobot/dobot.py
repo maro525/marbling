@@ -5,7 +5,7 @@ import warnings
 
 import serial
 
-from pydobot.message import Message
+from message import Message
 
 MODE_PTP_JUMP_XYZ = 0x00
 MODE_PTP_MOVJ_XYZ = 0x01

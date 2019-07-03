@@ -25,7 +25,7 @@ class findFaceGetPulse(object):
         self.frame_in = np.zeros((10, 10))
         self.frame_out = np.zeros((10, 10))
         self.fps = 0
-        self.buffer_size = 50
+        self.buffer_size = 80
         # self.window = np.hamming(self.buffer_size)
         self.data_buffer = []
         self.times = []
@@ -37,10 +37,12 @@ class findFaceGetPulse(object):
         self.t0 = time.time()
         self.bpms = []
         self.bpm = 0
-        dpath = resource_path("haarcascade_frontalface_alt.xml")
-        if not os.path.exists(dpath):
-            print("Cascade file not present!")
-        self.face_cascade = cv2.CascadeClassifier(dpath)
+        file = "/home/hidemaro/Desktop/marbling/pulsedetector/haarcascade_frontalface_alt.xml"
+        # dpath = resource_path(file)
+        # print(dpath)
+        # if not os.path.exists(dpath):
+        #     print("Cascade file not present!")
+        self.face_cascade = cv2.CascadeClassifier(file)
 
         self.face_rect = [1, 1, 2, 2]
         self.last_center = np.array([0, 0])
@@ -55,7 +57,7 @@ class findFaceGetPulse(object):
         self.move_thresh = 50
         self.send_data = 0
 
-        gamma = 0.5
+        gamma = 1.5
         self.gamma_cvt = np.zeros((256, 1), dtype='uint8')
         for i in range(256):
             self.gamma_cvt[i][0] = 255 * (float(i)/255) ** (1.0/gamma)
@@ -133,8 +135,7 @@ class findFaceGetPulse(object):
     def run(self, cam):
         self.times.append(time.time() - self.t0)
         self.frame_out = self.frame_in
-        self.gray = cv2.equalizeHist(
-            cv2.cvtColor(self.frame_in, cv2.COLOR_BGR2GRAY))
+        self.gray = cv2.equalizeHist(cv2.cvtColor(self.frame_in, cv2.COLOR_BGR2GRAY))
         # self.gray = self.gamma(self.gray)
         col = (100, 255, 100)
         cv2.imshow("frame", self.gray)

@@ -1,5 +1,6 @@
 import threading
-from robotoperator.robotoperation import RobotOperator
+import time
+from robotoperator.robotoperator import RobotOperator
 from interval_calculator import IntervalCalculator, Counter
 
 
@@ -14,6 +15,7 @@ class MarblingOperator(threading.Thread):
         self.stop_thresh = 10
         self.stop_counter = Counter(self.stop_thresh)
         self.key = None
+        self.pulse = 0
 
     def setup_robot(self):
         self.rob = RobotOperator()
@@ -21,59 +23,66 @@ class MarblingOperator(threading.Thread):
 
     def set_pulse(self, p):
         self.pulse = p
+        # print "[MO]set pulse {}".format(self.pulse)
+
 
     def turn_marble_index(self):
         self.marble_index += 1
         if self.marble_index is len(self.rob.marble_point)-1:
             self.rob.go_top(0, 100.0)
             self.marble_index = 0
-        print '[MO]:add marble. index is {}'.format(self.marble_index)
+        print '[MO]:next plate. index is {}'.format(self.marble_index)
 
     def set_state(self, state):
+        # print "[MO]self.state:{} state:{}".format(self.state, state)
         if state < 0 or state > 3:
-            print 'cannot set state!!!'
-        else if self.state is not state:
-            print 'State has changed!'
-            if state is 0:
-                self.go_home(0.5)
-                self.state = state
-            elif state is 2:
-                self.rob.set_speed(False)
-                self.rob.gaze(self.marble_index, 1.0)
+            print '[MO]cannot set state!!!'
+        elif self.state is not state:
+            print '[MO]State has changed from {} ---> {}!'.format(self.state, state)
+            self.state = state
 
-    def think(self):
+    def transition(self):
         if self.pulse == 0:  # face not detected
-            if self.stop_counter.isZero():
-                print '[MO]Stopping...'
-                self.set_state(1)
+            if self.state is 0:
+                self.set_state(0)
+                return
             self.stop_counter.add()
             print '[MO]Stopping...{}'.format(self.stop_counter.count)
+            self.set_state(1)
             # wait_count
             if self.stop_counter.isOverThresh():
                 self.set_state(0)
+                self.rob.go_home(0.5)
+                self.turn_marble_index()
+                self.stop_counter.reset()
         else:
             self.stop_counter.reset()
             self.rob.set_speed(True)
             if self.pulse is -1:
-                self.set_state(2)
+                if self.state is 0:
+                    self.set_state(2)
+                    self.rob.gaze(self.marble_index, 0.4)
+                else:
+                    self.set_state(2)
             else:
                 self.set_state(3)
 
+
     def work(self):
         if self.state is not 0:
-            print "marbling_interval {}".format(self.marbling_interval)
-            self.rob.marble(self.marble_index, self.marbling_interval)
+            interval = self.cal.get(self.pulse)
+            self.rob.marble(self.marble_index, interval)
         else:
-            print 'sleep'
+            print '[MO]sleep'
             time.sleep(1.0)
 
     def run(self):
         while not self.stop_event.is_set():
             self.key_handler()
-            self.think()
+            self.transition()
             self.work()
         self.stop_sequence()
-        print "End Robot Operator"
+        print "[MO]End Robot Operator"
 
     def stop(self):
         self.stop_event.set()
@@ -86,10 +95,12 @@ class MarblingOperator(threading.Thread):
     # key handlei
     def key_handler(self):
         if self.key is not None:
-            print "{} get!".format(key)
-        elif key is "p":
-            self.pass_wait_count()
+            print "[MO]no key command"
+        elif self.key is "p":
+            self.pass_stopping()
 
-    def pass_wait_count(self):
-        print "[MO]:pass wait count"
+    def pass_stopping(self):
+        print "[MO]:pass"
+        self.set_state(0)
+        self.pulse = 0
         self.stop_counter.finish()
