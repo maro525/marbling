@@ -19,6 +19,42 @@ OSC_IP = "127.0.0.1"
 OSC_PORT = 5005
 OSC_ADDRESS = "/bpm"
 
+HOST = '127.0.0.1'
+PORT = 5000
+
+robotoperation = None
+kb = None
+# restart_flag = True
+
+s = socket(AF_INET, SOCK_DGRAM)
+s.bind((HOST, PORT))
+
+key = None
+
+# push enter twice
+class KB(threading.Thread):
+    def __init__(self):
+        super(KB, self).__init__()
+        self.stop_event = threading.Event()
+        self.restart_evnet = threading.Event()
+
+    def run(self):
+        global key
+        while not self.stop_event.is_set():
+            print "loop"
+            key = raw_input()
+            # if key is "r":
+            #     self.restart_evnet.set()
+            #     self.stop_event.set()
+            #     print("KB:RESTART SIGNAL RECEIVED=======")
+            #     # key = None
+            #     break
+        print "KB:loop end"
+
+    def stop(self):
+        self.stop_event.set()
+        print("KB:FORCE QUIT SIGNAL RECEIVED=======")
+
 
 class RobotOperator(threading.Thread):
 
@@ -31,31 +67,24 @@ class RobotOperator(threading.Thread):
         self.operation_interval = 0.5
         self.normal_marble_interval = 0.5
         self.marbling_interval = self.normal_marble_interval
-        self.move_z = 10.0
+        self.move_z = 11.0
         self.bMarbling = False
         self.previous_bMarbling = False
         self.stop_event = threading.Event()
-        self.marble_count = 0  # count of plate transition
+        # self.marble_count = 0  # count of plate transition
         self.marbling_count = 0  # count of marbling in one plate
         self.marble_index = 0
-        self.marble_z = -30.2
+        self.marble_z = -75.2
         self.marble_point = [
-            {"x": 183.0, "y": -71.1},
-            {"x": 197.7, "y": 23.3},
-            {"x": 176.3, "y": 130.7},
-            {"x": 91.6, "y": 192.6},
-            {"x": -14.2, "y": 197.6},
+            {"x": 196.4, "y": -83.9},
+            {"x": 229.2, "y": 113.3},
+            {"x": 61.3, "y": 194.4},
         ]
 
         self.pulse = 0  # pulse
         self.bStopping = False  # marbling
         self.stop_count = 0  # stop_count
         self.wait_count = 10
-
-        self.key_controls = {
-            "r": self.restart,  # restart,
-            "p": self.pass_wait_count,  # pass
-        }
 
     def connect(self):
         port = list_ports.comports()[0].device
@@ -69,7 +98,7 @@ class RobotOperator(threading.Thread):
 
     def pass_wait_count(self):
         print "pass wait count"
-        self.stop_count = self.wait_count
+        self.stop_count = self.wait_count+1
 
     def set_speed(self, bFast):
         if bFast:
@@ -86,7 +115,7 @@ class RobotOperator(threading.Thread):
 
     def turn_marble_index(self):
         self.marble_index += 1
-        if self.marble_index is 5:
+        if self.marble_index is len(self.marble_point)-1:
             self.rob.jump_to(
                 self.marble_point[2]["x"], self.marble_point[2]["y"], self.marble_z+100, self.r1, wait=True)
             self.marble_index = 0
@@ -225,10 +254,10 @@ class RobotOperator(threading.Thread):
         # self.go_home(self.r2)
         # # rotate
         # self.rotate()
-        self.marble_count += 1
+        # self.marble_count += 1
 
-    def refill(self):
-        print 'refill'
+    # def refill(self):
+    #     print 'refill'
         # x = self.marble_point["x"]
         # y = self.marble_point["y"] + 20
         # z = self.marble_point["z"] + self.move_z
@@ -269,7 +298,7 @@ class RobotOperator(threading.Thread):
                         print "marbling_count {}".format(self.marbling_count)
                         self.marbling_interval = self.marbling_interval * \
                             self.pulse_sigmoid(self.marbling_count)
-                        # self.marbling_count += 1
+                        self.marbling_count += 1
                     self.marble()
                     # if self.marble_count is 5:
                     #     self.refill()
@@ -289,51 +318,68 @@ class RobotOperator(threading.Thread):
 
     def stop(self):
         self.stop_event.set()
-        print("FORCE QUIT SIGNAL RECEIVED=======")
+        print("RH:FORCE QUIT SIGNAL RECEIVED=======")
 
     def stop_sequence(self):
         self.go_init_pos(self.r1)
         self.disconnectRobot()
 
     def key_handler(self):
-        self.pressed = waitKey(10) & 255
+        global key
+        if key is not None:
+            print "{} get!".format(key)
+        elif key is "p":
+            self.pass_wait_count()
 
-        if self.pressed == 27:  # esc
-            print("=============FORCE QUIT================")
-            self.stop()
+# def restart_handle():
+#     global key, kb, robotoperation
+#     if kb.restart_evnet.is_set():
+#         robotoperation.stop_sequence()
+#         robotoperation = None
+#         kb = None
+#         key = None
+#         return True
+    # else:
+        # return False
 
-        for key in self.key_controls.keys():
-            if chr(self.pressed) == key:
-                self.key_controls[key]()
-
-# robotoperation = None
-
-
-HOST = '127.0.0.1'
-PORT = 5000
-
-s = socket(AF_INET, SOCK_DGRAM)
-s.bind((HOST, PORT))
-
-if __name__ == '__main__':
+def start_robotoperation():
     global robotoperation
     robotoperation = RobotOperator()
     robotoperation.connect()
     robotoperation.start()
-    # dispatcher = dispatcher.Dispatcher()
-    # dispatcher.map(OSC_ADDRESS, get_digit)
-    # server = osc_server.ThreadingOSCUDPServer(
-    #     (OSC_IP, OSC_PORT), dispatcher)
-    # print("Serving on {}".format(server.server_address))
-    # server.serve_forever()
 
+def start_kb():
+    global kb
+    kb = KB()
+    kb.start()
+
+# def main(s):
+def main():
+    global robotoperation, kb
+    start_robotoperation()
+    start_kb()
+    # restart_flag = False
     while True:
         try:
             msg, address = s.recvfrom(8192)
             data = int(float(msg))
             robotoperation.pulse = data
             robotoperation.join(1)
+            kb.join(1)
+            # restart_flag = restart_handle()
+            # if restart_flag is True:
+                # s.close()
+                # break
         except KeyboardInterrupt:
             robotoperation.stop()
+            kb.stop()
             s.close()
             break
+
+if __name__ == '__main__':
+    # while restart_flag:
+    # s = socket(AF_INET, SOCK_DGRAM)
+    # s.bind((HOST, PORT))
+    main()
+    # print("===============restart")
+    # time.sleep(2)

@@ -135,9 +135,9 @@ class findFaceGetPulse(object):
         self.frame_out = self.frame_in
         self.gray = cv2.equalizeHist(
             cv2.cvtColor(self.frame_in, cv2.COLOR_BGR2GRAY))
-        self.gray = self.gamma(self.gray)
+        # self.gray = self.gamma(self.gray)
         col = (100, 255, 100)
-        # cv2.imshow("frame", self.gray)
+        cv2.imshow("frame", self.gray)
 
         detected = list(self.face_cascade.detectMultiScale(
             self.gray, scaleFactor=1.3, minNeighbors=4, minSize=(50, 50), flags=cv2.CASCADE_SCALE_IMAGE))
