@@ -25,7 +25,6 @@ class MarblingOperator(threading.Thread):
         self.pulse = p
         # print "[MO]set pulse {}".format(self.pulse)
 
-
     def turn_marble_index(self):
         self.marble_index += 1
         if self.marble_index is len(self.rob.marble_point)-1:
@@ -42,6 +41,7 @@ class MarblingOperator(threading.Thread):
             self.state = state
 
     def transition(self):
+        print '[[PULSE]] : {}'.format(self.pulse)
         if self.pulse == 0:  # face not detected
             if self.state is 0:
                 self.set_state(0)
@@ -66,7 +66,6 @@ class MarblingOperator(threading.Thread):
                     self.set_state(2)
             else:
                 self.set_state(3)
-
 
     def work(self):
         if self.state is not 0:

@@ -135,10 +135,11 @@ class findFaceGetPulse(object):
     def run(self, cam):
         self.times.append(time.time() - self.t0)
         self.frame_out = self.frame_in
-        self.gray = cv2.equalizeHist(cv2.cvtColor(self.frame_in, cv2.COLOR_BGR2GRAY))
+        self.gray = cv2.equalizeHist(
+            cv2.cvtColor(self.frame_in, cv2.COLOR_BGR2GRAY))
         # self.gray = self.gamma(self.gray)
         col = (100, 255, 100)
-        cv2.imshow("frame", self.gray)
+        # cv2.imshow("frame", self.gray)
 
         detected = list(self.face_cascade.detectMultiScale(
             self.gray, scaleFactor=1.3, minNeighbors=4, minSize=(50, 50), flags=cv2.CASCADE_SCALE_IMAGE))
@@ -158,7 +159,7 @@ class findFaceGetPulse(object):
             self.draw_rect(forehead1)
             x, y, w, h = forehead1
             cv2.putText(self.frame_out, "Forehead",
-                            (x, y), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
+                        (x, y), cv2.FONT_HERSHEY_PLAIN, 1.5, col)
 
             # calculate move distance
             movelen = 30
@@ -249,7 +250,7 @@ class findFaceGetPulse(object):
                         self.frame_in[y:y + h, x:x + w, 1] + \
                         beta * self.gray[y:y + h, x:x + w]
                     b = alpha * self.frame_in[y:y + h, x:x + w, 2]
-                    self.frame_out[y:y + h, x:x + w] = cv2.merge([r,g,b])
+                    self.frame_out[y:y + h, x:x + w] = cv2.merge([r, g, b])
                     x1, y1, w1, h1 = self.face_rect
                     self.slices = [
                         np.copy(self.frame_out[y1:y1 + h1, x1:x1 + w1, 1])]

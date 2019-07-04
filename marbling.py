@@ -1,18 +1,19 @@
 # coding : utf-8
 
+# from socket import socket, AF_INET, SOCK_DGRAM
 import threading
 
+from pulsedetector.get_pulse import getPulseApp
 from marbling.marbling_operator import MarblingOperator
 
 mab = None
 kb = None
+pa = None
 
-HOST = '127.0.0.1'
-PORT = 5000
-
-from socket import socket, AF_INET, SOCK_DGRAM
-s = socket(AF_INET, SOCK_DGRAM)
-s.bind((HOST, PORT))
+# HOST = '127.0.0.1'
+# PORT = 5000
+# s = socket(AF_INET, SOCK_DGRAM)
+# s.bind((HOST, PORT))
 
 
 class KB(threading.Thread):
@@ -47,20 +48,28 @@ def start_kb():
     kb.start()
 
 
+def start_pulse_app():
+    global pa
+    pa = getPulseApp()
+    pa.start()
+
+
 if __name__ == '__main__':
     start_marblingoperation()
     start_kb()
     while True:
         try:
-            msg, address = s.recvfrom(8192)
-            data = int(float(msg))
-            print ("->{}".format(data))
-            mab.pulse = data
+            # msg, address = s.recvfrom(8192)
+            # data = int(float(msg))
+            # print("pulse->{}".format(pa.data))
+            mab.pulse = pa.data
             mab.join(1)
             kb.join(1)
+            pa.join(1)
         except KeyboardInterrupt:
             mab.stop()
             kb.stop()
             s.close()
+            pa.stop()
             break
     print("====PROGRAM FINISHED======")
