@@ -57,19 +57,21 @@ def start_pulse_app():
 if __name__ == '__main__':
     start_marblingoperation()
     start_kb()
+    start_pulse_app()
     while True:
         try:
             # msg, address = s.recvfrom(8192)
             # data = int(float(msg))
             # print("pulse->{}".format(pa.data))
             mab.pulse = pa.data
+            # mab.set_pulse(pa.data)
             mab.join(1)
             kb.join(1)
             pa.join(1)
         except KeyboardInterrupt:
+            pa.stop()
             mab.stop()
             kb.stop()
-            s.close()
-            pa.stop()
+            # s.close()
             break
     print("====PROGRAM FINISHED======")

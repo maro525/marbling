@@ -6,14 +6,17 @@ from serial.tools import list_ports
 class RobotOperator:
     def __init__(self):
         self.rob = None
-        self.marble_z = -30.3
-        self.move_z = 11.0
+        self.marble_z = -58.0
+        self.move_z = 18.0
         self.marble_point = [
-            {"x": 167.3, "y": 155.2},
-            {"x": 253.3, "y": 50.9},
-            {"x": 48.2, "y": 228.4},
+            {"x": 128.9, "y": 246.8},
+            {"x": 271.2, "y": 134.6},
+            {"x": 264.0, "y": -135.1},
+            {"x": 131.7, "y": -260.2},
+
         ]
-        self.home = {"x": 113.5, "y": 58.9, "z": 13.1}
+        self.home = {"x": 228.1, "y": -3.5, "z": 86.5}
+        self.gaze_point = {"x": 295.5, "y":13.9, "z":120.3}
         self.op_interval = 0.5
 
     def connect(self):
@@ -81,19 +84,20 @@ class RobotOperator:
         else:
             self.go_interval(interval)
 
-    def gaze(self, index, interval):
-        print "[RO]gaze {} {}".format(index, interval)
-        self.x=self.marble_point[0]["x"]
-        self.y=self.marble_point[0]["y"]
-        self.z=self.marble_z + 150.0
+    def gaze(self, interval=0.5):
+        print "[RO]gaze {}".format(interval)
         self.set_speed(False)
-        self.rob.jump_to(self.x, self.y, self.z)
-        self.go_interval(interval)
-        self.go_top(index, 0.0, interval=interval)
+        self.x = self.gaze_point["x"]
+        self.y = self.gaze_point["y"]
+        self.z = self.gaze_point["z"]
+        self.rob.move_to(self.x, self.y, self.z)
+        if interval is not None:
+            self.go_interval(interval)
 
     def marble(self, index, interval):
         # print '[RO]:marble loop'
         # set
+        self.set_speed(True)
         self.go_top(index, self.move_z,
                     interval=interval, bWait=False)
         # down

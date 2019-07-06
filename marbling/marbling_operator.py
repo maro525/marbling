@@ -1,85 +1,119 @@
 import threading
 import time
+import datetime
 from robotoperator.robotoperator import RobotOperator
 from interval_calculator import IntervalCalculator, Counter
-
+import csv
 
 class MarblingOperator(threading.Thread):
 
     def __init__(self):
         super(MarblingOperator, self).__init__()
         self.stop_event = threading.Event()
-        self.marble_index = 0
-        self.state = 0  # [0:sleep, 1, stopping, 2:previousmarbling 3:marbling]
+        self.sleep_event = threading.Event()
+        self.marbling_index = 0
+        self.start_marbling_time = 0.0
+        self.state = 0  # [0:wait, 1, gaze, 2:marbling 3sleep]
         self.cal = IntervalCalculator()
-        self.stop_thresh = 10
-        self.stop_counter = Counter(self.stop_thresh)
+        # self.stop_thresh = 10
+        # self.stop_counter = Counter(self.stop_thresh)
         self.key = None
         self.pulse = 0
+        self.interval = self.cal.pulse_to_interval(60)
+        self.csv_file = "pulse_data.csv"
+        self.last_marble_pulse = 0.0
 
     def setup_robot(self):
         self.rob = RobotOperator()
         self.rob.connect()
 
     def set_pulse(self, p):
+        print type(p)
         self.pulse = p
-        # print "[MO]set pulse {}".format(self.pulse)
+        if self.pulse < 10.0:
+            self.pulse = int(self.pulse)
+        print "[MO]set pulse {} type : {}".format(self.pulse, type(self.pulse))
 
     def turn_marble_index(self):
-        self.marble_index += 1
-        if self.marble_index is len(self.rob.marble_point)-1:
-            self.rob.go_top(0, 100.0)
-            self.marble_index = 0
-        print '[MO]:next plate. index is {}'.format(self.marble_index)
+        self.marbling_index += 1
+        if self.marbling_index is len(self.rob.marble_point):
+            self.marbling_index = 0
+        print '[MO]:next plate. index is {}'.format(self.marbling_index)
 
-    def set_state(self, state):
-        # print "[MO]self.state:{} state:{}".format(self.state, state)
-        if state < 0 or state > 3:
-            print '[MO]cannot set state!!!'
-        elif self.state is not state:
-            print '[MO]State has changed from {} ---> {}!'.format(self.state, state)
-            self.state = state
+    def still_marbling_time(self):
+        now = time.time()
+        diff = now - self.start_marbling_time
+        if diff < 30:
+            return True
+        else:
+            return False
 
     def transition(self):
-        print '[[PULSE]] : {}'.format(self.pulse)
-        if self.pulse == 0:  # face not detected
-            if self.state is 0:
-                self.set_state(0)
-                return
-            self.stop_counter.add()
-            print '[MO]Stopping...{}'.format(self.stop_counter.count)
-            self.set_state(1)
-            # wait_count
-            if self.stop_counter.isOverThresh():
-                self.set_state(0)
-                self.rob.go_home(0.5)
-                self.turn_marble_index()
-                self.stop_counter.reset()
-        else:
-            self.stop_counter.reset()
-            self.rob.set_speed(True)
-            if self.pulse is -1:
-                if self.state is 0:
-                    self.set_state(2)
-                    self.rob.gaze(self.marble_index, 0.4)
-                else:
-                    self.set_state(2)
-            else:
-                self.set_state(3)
+        # print '[[PULSE]] : {}. type {}'.format(self.pulse, type(self.pulse))
+        # print "Marbling State before: {}".format(self.state)
+        if self.state is 0: # wait
+            if int(self.pulse) is -1:
+                self.state = 1
+                self.rob.gaze()
+                print "Marbling State changed to..: {}".format(self.state)
 
-    def work(self):
-        if self.state is not 0:
-            interval = self.cal.get(self.pulse)
-            self.rob.marble(self.marble_index, interval)
-        else:
-            print '[MO]sleep'
-            time.sleep(1.0)
+            elif int(self.pulse) is 0:
+                self.state = 0
+
+            if self.key is "f":
+                self.state = 2
+                self.start_marbling_time = time.time()
+                self.interval = self.cal.pulse_to_interval(60)
+                self.last_marble_pulse = 60
+                self.rob.go_top(self.marbling_index, 50.0, interval=0.2)
+                self.key = None
+        elif self.state is 1: # gaze
+            if int(self.pulse) is -1:
+                self.state = 1
+                if self.key is "f":
+                    self.state = 2
+                    self.start_marbling_time = time.time()
+                    self.interval = self.cal.pulse_to_interval(60)
+                    print "[MO]set interval {}".format(self.interval)
+                    self.last_marble_pulse = 60
+                    self.rob.go_top(self.marbling_index, 50.0, interval=0.2)
+                    self.key = None
+            elif int(self.pulse) is 0:
+                self.rob.go_home()
+                self.state = 0
+                print "Marbling State changed to..: {}".format(self.state)
+
+            else:
+                self.state = 2
+                self.start_marbling_time = time.time()
+                self.interval = self.cal.pulse_to_interval(self.pulse)
+                self.last_marble_pulse = self.pulse
+                print "s {}".format(self.last_marble_pulse)
+                self.rob.go_top(self.marbling_index, 50.0, interval=0.2)
+                print "Marbling State changed to..: {}".format(self.state)
+
+        elif self.state is 2: # marbling
+            self.rob.set_speed(True)
+            self.rob.marble(self.marbling_index, self.interval)
+            if not self.still_marbling_time():
+                self.rob.go_top(self.marbling_index, 50.0, interval=0.2)
+                self.rob.go_home()
+                self.turn_marble_index()
+                self.write_pulse_data()
+                self.rob.set_speed(False)
+                # self.rob.go_top(self.marbling_index, 30.0, interval=0.5)
+                self.state = 3
+                self.key = None
+                print "Marbling State changed to..: {}".format(self.state)
+
+        elif self.state is 3:
+            if self.key is "r":
+                self.state = 0
+                print "Marbling State changed to..: {}".format(self.state)
 
     def run(self):
         while not self.stop_event.is_set():
-            self.key_handler()
             self.transition()
-            self.work()
         self.stop_sequence()
         print "[MO]End Robot Operator"
 
@@ -88,18 +122,13 @@ class MarblingOperator(threading.Thread):
         print("[MO]:FORCE QUIT SIGNAL RECEIVED=======")
 
     def stop_sequence(self):
-        self.rob.go_top(0, 100.0)
+        self.rob.set_speed(False)
+        self.rob.go_home()
         self.rob.disconnect()
 
-    # key handlei
-    def key_handler(self):
-        if self.key is not None:
-            print "[MO]no key command"
-        elif self.key is "p":
-            self.pass_stopping()
-
-    def pass_stopping(self):
-        print "[MO]:pass"
-        self.set_state(0)
-        self.pulse = 0
-        self.stop_counter.finish()
+    def write_pulse_data(self):
+        with open(self.csv_file, 'a') as fd:
+            t = datetime.datetime.now()
+            writer= csv.writer(fd)
+            dl = [t, self.last_marble_pulse]
+            writer.writerow(dl)

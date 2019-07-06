@@ -20,7 +20,7 @@ class getPulseApp(threading.Thread):
                                           data_spike_limit=2500.,
                                           face_detector_smoothness=10.)
 
-        self.udp_socket = socket(AF_INET, SOCK_DGRAM)
+        # self.udp_socket = socket(AF_INET, SOCK_DGRAM)
         self.loop_count = 0
         self.data = 0.0
 
@@ -31,7 +31,7 @@ class getPulseApp(threading.Thread):
     def close(self):
         self.camera.release()
         cv2.destroyAllWindows()
-        self.udp_socket.close()
+        # self.udp_socket.close()
 
     def run(self):
         while not self.stop_event.is_set():
@@ -42,6 +42,7 @@ class getPulseApp(threading.Thread):
         self.stop_event.set()
 
     def main_loop(self):
+        # print "[GP]main loop"
         _, frame = self.camera.read()
 
         self.processor.frame_in = frame
@@ -49,11 +50,11 @@ class getPulseApp(threading.Thread):
         output_frame = self.processor.frame_out
 
         # show the processed/annotated output frame
-        cv2.imshow("Processed", frame)
+        # cv2.imshow("Processed", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             print "q pressed"
 
-        self.data = self.processor.send_data
+        self.data = float(self.processor.send_data)
         # self.loop_count += 1
         # if self.loop_count is 30:
         #     self.send_bpm()

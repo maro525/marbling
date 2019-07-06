@@ -1,0 +1,2 @@
+pydobot: /dev/ttyUSB0 open
+pydobot: x:167.3 y:155.2 z:69.7 r:0.0 j1:42.9 j2:14.9 j3:24.4 j4:-42.9

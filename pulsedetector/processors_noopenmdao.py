@@ -25,7 +25,7 @@ class findFaceGetPulse(object):
         self.frame_in = np.zeros((10, 10))
         self.frame_out = np.zeros((10, 10))
         self.fps = 0
-        self.buffer_size = 80
+        self.buffer_size = 40
         # self.window = np.hamming(self.buffer_size)
         self.data_buffer = []
         self.times = []
@@ -57,7 +57,7 @@ class findFaceGetPulse(object):
         self.move_thresh = 50
         self.send_data = 0
 
-        gamma = 1.5
+        gamma = 3.0
         self.gamma_cvt = np.zeros((256, 1), dtype='uint8')
         for i in range(256):
             self.gamma_cvt[i][0] = 255 * (float(i)/255) ** (1.0/gamma)
