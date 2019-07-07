@@ -6,13 +6,13 @@ from serial.tools import list_ports
 class RobotOperator:
     def __init__(self):
         self.rob = None
-        self.marble_z = -58.0
+        self.marble_z = -63.7
         self.move_z = 18.0
         self.marble_point = [
-            {"x": 128.9, "y": 246.8},
-            {"x": 271.2, "y": 134.6},
-            {"x": 264.0, "y": -135.1},
-            {"x": 131.7, "y": -260.2},
+            {"x":135.9, "y": 229.1},
+            {"x": 273.0, "y": 107.8},
+            {"x": 264.7, "y": -135.5},
+            {"x": 102.0, "y": -253.0},
 
         ]
         self.home = {"x": 228.1, "y": -3.5, "z": 86.5}
