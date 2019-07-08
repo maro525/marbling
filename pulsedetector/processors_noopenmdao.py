@@ -142,7 +142,7 @@ class findFaceGetPulse(object):
         # cv2.imshow("frame", self.gray)
 
         detected = list(self.face_cascade.detectMultiScale(
-            self.gray, scaleFactor=1.3, minNeighbors=4, minSize=(50, 50), flags=cv2.CASCADE_SCALE_IMAGE))
+            self.gray, scaleFactor=1.3, minNeighbors=3, minSize=(50, 50), flags=cv2.CASCADE_SCALE_IMAGE))
 
         if len(detected) > 0:
             self.bDetecting = True
